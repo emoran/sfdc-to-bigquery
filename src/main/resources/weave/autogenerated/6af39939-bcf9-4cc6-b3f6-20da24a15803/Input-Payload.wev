@@ -1,0 +1,62 @@
+%dw 2.0
+
+type auto_6af39939_bcf9_4cc6_b3f6_20da24a15803_Input_Payload = {|
+  creationTime?: Number, 
+  description?: String, 
+  eTag?: String, 
+  encryptionConfiguration?: com_mulesoft_connectors_bigquery_api_response_EncryptionConfiguration, 
+  expirationTime?: Number, 
+  friendlyName?: String, 
+  generatedId?: String, 
+  labels?: { _?: String }, 
+  lastModifiedTime?: Number, 
+  numBytes?: Number, 
+  numLongTermBytes?: Number, 
+  numRows?: Number, 
+  selfLink?: String, 
+  tableDefinition?: com_mulesoft_connectors_bigquery_api_response_table_TableDefinition, 
+  tableId?: com_mulesoft_connectors_bigquery_api_response_table_TableId
+|} {"typeAlias": "TableInformation",
+"class": "com.mulesoft.connectors.bigquery.api.response.table.TableInformation",
+"typeId": "com.mulesoft.connectors.bigquery.api.response.table.TableInformation"}
+type com_mulesoft_connectors_bigquery_api_response_table_TableDefinition = {|
+  schema?: com_mulesoft_connectors_bigquery_api_response_table_Schema, 
+  "type"?: String
+|} {"typeAlias": "TableDefinition",
+"class": "com.mulesoft.connectors.bigquery.api.response.table.TableDefinition",
+"typeId": "com.mulesoft.connectors.bigquery.api.response.table.TableDefinition"}
+type com_mulesoft_connectors_bigquery_api_response_table_Schema = {|
+  fields?: Array<com_mulesoft_connectors_bigquery_api_response_table_Field>
+|} {"typeAlias": "Schema",
+"class": "com.mulesoft.connectors.bigquery.api.response.table.Schema",
+"typeId": "com.mulesoft.connectors.bigquery.api.response.table.Schema"}
+type com_mulesoft_connectors_bigquery_api_response_table_Field = {|
+  description?: String, 
+  mode?: String, 
+  name?: String, 
+  subFields?: Array<com_mulesoft_connectors_bigquery_api_response_table_Field>, 
+  "type"?: String
+|} {"typeAlias": "Field",
+"class": "com.mulesoft.connectors.bigquery.api.response.table.Field",
+"typeId": "com.mulesoft.connectors.bigquery.api.response.table.Field"}
+
+
+
+
+
+
+type com_mulesoft_connectors_bigquery_api_response_table_TableId = {|
+  dataset?: String, 
+  projectId?: String, 
+  table?: String
+|} {"typeAlias": "TableId",
+"class": "com.mulesoft.connectors.bigquery.api.response.table.TableId",
+"typeId": "com.mulesoft.connectors.bigquery.api.response.table.TableId"}
+
+
+type com_mulesoft_connectors_bigquery_api_response_EncryptionConfiguration = {| kmsKeyName?: String |} {"typeAlias": "EncryptionConfiguration",
+"class": "com.mulesoft.connectors.bigquery.api.response.EncryptionConfiguration",
+"typeId": "com.mulesoft.connectors.bigquery.api.response.EncryptionConfiguration"}
+
+
+

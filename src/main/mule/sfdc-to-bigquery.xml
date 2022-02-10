@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:bigquery="http://www.mulesoft.org/schema/mule/bigquery"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/bigquery http://www.mulesoft.org/schema/mule/bigquery/current/mule-bigquery.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="01dcd6bc-b3b1-4d95-b738-19b1b5d0d88a" >
+		<salesforce:basic-connection username="${sfdc.username}" password="${sfdc.password}" securityToken="${token}" />
+	</salesforce:sfdc-config>
+	<bigquery:config name="Mulesoft_GBQ" doc:name="Google_bigquery Config" doc:id="f68060c9-5a5f-49c6-bb6c-97575fa7c832" >
+		<bigquery:connection projectId="${gcp.projectID}" jsonServiceAccountKeyFile="PATH_TO_JSON_KEY"/>
+	</bigquery:config>
+	<flow name="Sync" doc:id="b8999a01-6a5a-4bac-870b-7be14789fa54" >
+		<scheduler doc:name="Scheduler" doc:id="c85fd509-e055-478a-b51d-f6878ef41a3e" >
+			<scheduling-strategy >
+				<fixed-frequency startDelay="100" timeUnit="DAYS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="DescribeInstance" doc:id="206aef53-af94-4872-8d7c-9135160f400f" name="DescribeInstance" />
+	</flow>
+	<flow name="DescribeInstance" doc:id="39fc0440-ce51-4772-be8d-3efb0a996399" >
+		<salesforce:describe-global doc:name="Describe global" doc:id="e8edcdef-6add-4d64-8fa1-f753b9206c5f" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Filtering Objects" doc:id="d3920b30-6c9b-4e82-b348-35751d4b14ff" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload.sobjects filter (	$.queryable == true and 
+							$.replicateable == true and 
+							$.retrieveable == true and 
+							$.searchable == true and 
+							$.triggerable == true and
+							($.name == "Account" or 
+							 $.name == "Contact" or
+							 $.name =="Project__c")) map $]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="Iterate over each Object" doc:id="4f7bb9d5-5316-4a39-bc50-274e007df002" >
+			<flow-ref doc:name="DescribeIndividualSalesforceObject" doc:id="8548e688-62ed-4006-86ad-ebdfed53dc71" name="DescribeIndividualSalesforceObject"/>
+			<flow-ref doc:name="BigQuery-CreateTable" doc:id="f1c0d365-a56c-44f8-88a0-4ca9c052d164" name="BigQueryCreateTable" />
+			<flow-ref doc:name="QuerySalesforceObject" doc:id="f1009205-a952-46dc-9cb0-88e089505553" name="QuerySalesforceObject" />
+			<flow-ref doc:name="InsertDataIntoBigQuery" doc:id="28deefbb-0fbc-45fe-9922-d411c329d50b" name="InsertDataIntoBigQuery" />
+		</foreach>
+		<logger level="INFO" doc:name="Completed" doc:id="87a4220a-e9bf-4df6-8287-10e3e40a9385" message="Completed"/>
+	</flow>
+	<flow name="DescribeIndividualSalesforceObject" doc:id="be6f5aca-8b7b-4f14-8e69-8205cab03cc1" >
+		<salesforce:describe-sobject type="#[payload.name]" doc:name="Describe SObject" doc:id="a31d1429-ce93-483e-ac2f-f8ce7fc6cdc3" config-ref="Salesforce_Config" />
+		<ee:transform doc:name="To Java" doc:id="dd181345-16ba-4c9f-9ae2-84f871e69a10">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Salesforce to Bigquery Fields Schema" doc:id="fce66421-8499-4d52-abf6-28e1bf2b9df1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+input payload application/java
+output application/java
+fun validateField(field) = if ( (field == "REFERENCE") 
+                                or (field == "ID") or 
+                                (field == "PICKLIST")  or 
+                                (field == "TEXTAREA") or
+                                (field == "ADDRESS")or
+                                (field == "EMAIL")or
+                                (field == "PHONE") or
+                                (field == "URL")) 
+                                "STRING" 
+                                else  
+                                if ( (field == "DOUBLE") or
+                                	 (field == "CURRENCY")
+                                ) 
+                                "FLOAT" 
+                                else 
+                                if ((field == "INT")) 
+                                "INTEGER" 
+                                else field
+---
+(payload.fields filter ($."type" != "LOCATION") map {
+   fieldName : $.name,
+   fieldType : validateField($."type")
+})]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="tableName"><![CDATA[%dw 2.0
+output application/java
+---
+payload.name]]></ee:set-variable>
+				<ee:set-variable variableName="salesforceFields"><![CDATA[%dw 2.0
+output application/java
+---
+(payload.fields filter ($."type" != "LOCATION") map {
+   fieldName : $.name
+}).fieldName joinBy ","]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</flow>
+	<flow name="BigQueryCreateTable" doc:id="de33bbdd-7441-458a-821e-31488b9d7831" >
+		<bigquery:create-table doc:name="Create Table with Fields" doc:id="bc508a8a-d13e-4239-b17f-cdfbfc10f026" config-ref="Mulesoft_GBQ" tableFields="#[payload]">
+			<bigquery:table-info >
+				<bigquery:table table="#[vars.tableName]" dataset="salesforce" />
+			</bigquery:table-info>
+		</bigquery:create-table>
+	</flow>
+	<flow name="QuerySalesforceObject" doc:id="6af39939-bcf9-4cc6-b3f6-20da24a15803" >
+		<salesforce:query doc:name="QuerySobject" doc:id="0719e0b6-43e3-43df-b6a5-99d90f8c89a4" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[Select :fields from :table limit 100]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"fields" : vars.salesforceFields replace "'" with "",
+	"table": vars.tableName
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Dynamic Field Mapping for BQ" doc:id="73c63ae2-fccf-4c68-9b2b-02e56ad25efa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import try, fail from dw::Runtime
+output application/java
+
+
+fun isDate(value: Any): Boolean = try(() -> value as Date).success
+fun getDate(value: Any): Date | Null | Any = ( if ( isDate(value) ) value 
+            as Date as String else value )
+
+---
+(payload map (item,index) ->{
+    (item mapObject ((value, key, index) -> {
+        (key):(getDate(value))
+    } ))
+}) ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="bdf5fc4a-9c9e-41c8-9d90-7924794b6dfd" message='#["Total Records: " ++ sizeOf(payload)]'/>
+	</flow>
+	<flow name="InsertDataIntoBigQuery" doc:id="057c61b2-4c6f-47cb-9e12-8eb921d9a97c" >
+		<bigquery:insert-all doc:name="Insert All" doc:id="8a668263-87fc-4e9f-8fc2-cd61fc63a76e" config-ref="Mulesoft_GBQ" tableId="#[vars.tableName]" datasetId="salesforce" rowsData="#[payload]" skipInvalidRows="true"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f71cb45c-d412-41c1-95e3-a6bb001815fe" />
+	</flow>
+</mule>

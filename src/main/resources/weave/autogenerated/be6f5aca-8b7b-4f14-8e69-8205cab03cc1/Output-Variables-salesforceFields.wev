@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_be6f5aca_8b7b_4f14_8e69_8205cab03cc1_Output_Variables_salesforceFields = Any
+

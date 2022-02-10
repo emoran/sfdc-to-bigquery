@@ -1,0 +1,34 @@
+%dw 2.0
+
+type auto_be6f5aca_8b7b_4f14_8e69_8205cab03cc1_Output_Variables_rootMessage = {|
+  payload: Array<org_mule_extension_salesforce_api_metadata_DescribeGlobalResult_DescribeGlobalSObjectResult> | Null, 
+  attributes: Null
+|} {"typeId": "org.mule.runtime.api.message.Message"}
+type org_mule_extension_salesforce_api_metadata_DescribeGlobalResult_DescribeGlobalSObjectResult = {|
+  activateable?: Boolean {"typeId": "boolean"}, 
+  createable?: Boolean {"typeId": "boolean"}, 
+  custom?: Boolean {"typeId": "boolean"}, 
+  customSetting?: Boolean {"typeId": "boolean"}, 
+  deletable?: Boolean {"typeId": "boolean"}, 
+  deprecatedAndHidden?: Boolean {"typeId": "boolean"}, 
+  feedEnabled?: Boolean {"typeId": "boolean"}, 
+  keyPrefix?: String, 
+  label?: String, 
+  labelPlural?: String, 
+  layoutable?: Boolean {"typeId": "boolean"}, 
+  mergeable?: Boolean {"typeId": "boolean"}, 
+  mruEnabled?: Boolean {"typeId": "boolean"}, 
+  name?: String, 
+  queryable?: Boolean {"typeId": "boolean"}, 
+  replicateable?: Boolean {"typeId": "boolean"}, 
+  retrieveable?: Boolean {"typeId": "boolean"}, 
+  searchable?: Boolean {"typeId": "boolean"}, 
+  triggerable?: Boolean {"typeId": "boolean"}, 
+  undeleteable?: Boolean {"typeId": "boolean"}, 
+  updateable?: Boolean {"typeId": "boolean"}
+|} {"typeAlias": "DescribeGlobalSObjectResult",
+"class": "org.mule.extension.salesforce.api.metadata.DescribeGlobalResult\$DescribeGlobalSObjectResult",
+"typeId": "org.mule.extension.salesforce.api.metadata.DescribeGlobalResult.DescribeGlobalSObjectResult"}
+
+
+
